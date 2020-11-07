@@ -23,7 +23,7 @@ class EEGSpectralData():
     sampling_rate = None
     data = None
 
-    def __init__(self, eegdata=None, n_electrodes=2, window=2048, step=1792, downsample=1):
+    def __init__(self, eegdata=None, n_electrodes=None, window=None, step=None, desired_len=3000, desired_overlap=1.6, downsample=None, desired_fstep=.1):
         """
         Uses raw EEG data to create frequency power distribution histogram
 
@@ -36,10 +36,21 @@ class EEGSpectralData():
         """
         if eegdata is None:
             return
+        if n_electrodes is None:
+            n_electrodes = eegdata.n_electrodes
+        if step is None:
+            step = eegdata.data.shape[0] // desired_len
+        if window is None:
+            window = 1
+            while window < step * desired_overlap:
+                window *= 2
+        self.n_electrodes = n_electrodes
         self.sampling_rate = eegdata.sampling_rate
         self.step =step
         self.frequencystamps = np.arange(int(window/2)+1)/(int(window/2)) * self.sampling_rate/2
-        self.frequencystamps = self.frequencystamps[::downsample]
+        if downsample is None:
+            downsample = max(1, int((len(self.frequencystamps) - 1) * desired_fstep / (self.frequencystamps[-1] - self.frequencystamps[0])))
+        self.frequencystamps = self.frequencystamps[:len(self.frequencystamps) // downsample * downsample:downsample]
         self.data = np.zeros((n_electrodes,len(range(window,eegdata.data.shape[0],step)),len(self.frequencystamps)),dtype=np.float)
         for el in range(n_electrodes):
             n = 0;
@@ -47,46 +58,57 @@ class EEGSpectralData():
                 w = eegdata.data[(d-window):d,el]
                 w = w.flatten()
                 p = speriodogram(w, detrend=False, sampling=eegdata.sampling_rate)
-                self.data[el,n,:]=p[::downsample]
+                p = p[:len(p) - len(p) % downsample]
+                for i in range(downsample):
+                    self.data[el,n,:] += p[i::downsample]
                 n+=1
         self.samplestamps = np.arange(window,eegdata.data.shape[0],step);
         self.timestamps = self.samplestamps/self.sampling_rate
 
 
-    def frequency_cutoff(self,cutoff = 45):
+    def frequency_cutoff(self, cutoff=45, low=1):
         """
         Reduces the histogram data by cutting off frequencies higher than specifed frequency
         
         Args:
             cutoff: freqency above which the histogram data will be removed
+            low   : freqency below which the histogram data will be removed
         """
-        ci = np.argmax(self.frequencystamps>cutoff)
-        self.data = self.data[:,:,:ci]
-        self.frequencystamps = self.frequencystamps[:ci]
+        ci = np.argmin(self.frequencystamps<=cutoff)
+        li = np.argmax(self.frequencystamps>=low)
+        self.data = self.data[:,:,li:ci+1]
+        self.frequencystamps = self.frequencystamps[li:ci+1]
         
-    def plot(self, elid=0, colormap="parula", vmin=None, vmax=None, xlabels=True, axes=None, title="EEG Spectrogram", figsize=(15,7), blocking=False):
+    def plot(self, elid=0, colormap="cold_black_hot_symmetry_green", vmin=None, vmax=None, xlabels=True, axes=None, title="EEG Spectrogram", figsize=(15,7), blocking=False, normalize=True, interpolation='hanning'):
         """
         Plots sperctrogram into an axes provided for desired electrode.
 
         Args:
             elid: Index of the electrode for which spectrogram will be plotted
             colormap: plot colormap (parula by default)
-            vmin: Value of log hist which is used for the lowest color, default is np.min(log_hist)+0.43*np.ptp(log_hist)
-            vmax: Value of log hist which is used for the higest color, default is np.max(log_hist)-0.03*np.ptp(log_hist)
+            vmin: Value of log hist which is used for the lowest color, default is np.min(dt)+0.43*np.ptp(dt)
+            vmax: Value of log hist which is used for the higest color, default is np.max(dt)-0.03*np.ptp(dt)
             xlabels: True to display x axis label, false to hide
             axes: matplotlib.axes.Axes object, None = Make new plot window
             title: Title of the figure when plotting standalone (axes=None)
             figsize: Size of the figure when plotting standalone (axes=None)
             blocking: True to block program execution, false to continue when plotting standalone (axes=None)
         """
-        #Log histogram for better visual interpretation
-        log_hist=np.log(self.data[elid,:,:])
-
-        #Determine vmin/vmax values
-        if vmin is None:
-            vmin = np.min(log_hist)+0.43*np.ptp(log_hist)
-        if vmax is None:
-            vmax = np.max(log_hist)-0.03*np.ptp(log_hist)
+        dt = self.data[elid]
+        if normalize:
+            x = dt[:,np.argmax(self.frequencystamps>=1):np.argmin(self.frequencystamps<=17)].flatten()
+            x.sort()
+            vmin = 0
+            vmax = len(x) - 1
+            dt = np.interp(dt, x, np.arange(len(x)))
+        else:
+            #Log histogram for better visual interpretation
+            dt = np.log(dt)
+            #Determine vmin/vmax values
+            if vmin is None:
+                vmin = np.min(dt)+0.43*np.ptp(dt)
+            if vmax is None:
+                vmax = np.max(dt)-0.03*np.ptp(dt)
 
         if axes is None:
             fig=plt.figure(figsize=figsize)
@@ -117,8 +139,8 @@ class EEGSpectralData():
         axes.set_yticklabels(yticklabels)
         axes.set_xticks(xticks)
         axes.set_xticklabels(xticklabels)
-        axes.imshow(np.transpose(log_hist), origin="lower", aspect="auto", 
-                cmap=plotting_util.colormap(colormap), interpolation="none",vmin=vmin,vmax=vmax)
+        axes.imshow(np.transpose(dt), origin="lower", aspect="auto", 
+                cmap=plotting_util.colormap(colormap), interpolation=interpolation,vmin=vmin,vmax=vmax)
         axes.set_ylabel("Frequency (Hz)")
         if xlabels:
             axes.set_xlabel("Time (min)")
