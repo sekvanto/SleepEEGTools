@@ -45,7 +45,7 @@ def dense_cmap_from_points(name, points, granularity=1, precision=.1):
     return LinearSegmentedColormap.from_list(name, cols, N=len(cols))
 
 custom_maps = {
-    "parlua": LinearSegmentedColormap.from_list('parula', [
+    "parula": LinearSegmentedColormap.from_list('parula', [
         [0.2081      , 0.1663      , 0.5292      ],
         [0.2116238095, 0.1897809524, 0.5776761905],
         [0.212252381 , 0.2137714286, 0.6269714286],
