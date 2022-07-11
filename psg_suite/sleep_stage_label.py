@@ -94,12 +94,16 @@ class SleepStageLabel():
             for x in range(0, len(data)):
                 table.get_celld()[x, 1].get_text().set_text(format_time_period(data[x]))
             fig.canvas.draw()
-        def on_pick(event):
-            #print(event.artist)
-            if event.artist is None:
+        def on_pick(figure, mouseevent):
+            #print(ax_transforms)
+            #print(mouseevent)
+            #print(figure)
+            #print(figure.get_axes())
+            if not mouseevent.inaxes in ax_transforms:
                 return
-            xmouse, ymouse = event.mouseevent.xdata, event.mouseevent.ydata
-            xmouse = ax_transforms[event.artist].index_to_time(xmouse)
+            eegdata = ax_transforms[mouseevent.inaxes]
+            xmouse, ymouse = mouseevent.xdata, mouseevent.ydata
+            xmouse = eegdata.index_to_time(xmouse)
             #print('x, y of mouse: {:.2f},{:.2f}'.format(xmouse, ymouse))
             larger=[x[0] for x in enumerate(self.stage_times) if x[1] > xmouse]
             if len(larger)>0:
