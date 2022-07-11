@@ -100,7 +100,7 @@ class SleepStageLabel():
             #print(figure)
             #print(figure.get_axes())
             if not mouseevent.inaxes in ax_transforms:
-                return
+                return False, {}
             eegdata = ax_transforms[mouseevent.inaxes]
             xmouse, ymouse = mouseevent.xdata, mouseevent.ydata
             xmouse = eegdata.index_to_time(xmouse)
@@ -125,6 +125,7 @@ class SleepStageLabel():
                     self.stage_labels = np.delete(self.stage_labels, i)
                     self.stage_times = np.delete(self.stage_times, i)
             redraw_labels()
+            return True, {}
 
         
         for did in range(len(display_elems)):
