@@ -41,7 +41,7 @@ class EEGData():
         try:
             with open(fname) as f:
                 lines = f.read().splitlines()
-                self.data = np.zeros((len(lines),n_electrodes),dtype=np.float)
+                self.data = np.zeros((len(lines),n_electrodes),dtype=np.float64)
                 n = 0
                 for ln in lines:
                     strdata = ln.split(' ')
@@ -78,7 +78,7 @@ class EEGData():
             with open(fname) as f:
                 if nlines+1 < 2:
                     raise IOError("Invalid file format")
-                self.data = np.zeros((nlines,n_electrodes),dtype=np.float)
+                self.data = np.zeros((nlines,n_electrodes),dtype=np.float64)
                 n = 0;
                 for ln in f:
                     ln=ln.rstrip()
@@ -154,7 +154,7 @@ class EEGData():
                 channels = len(used_channels)
                 self.n_electrodes = channels
             with open(fname) as f:
-                data = np.zeros((n_lines,channels),dtype=np.float)
+                data = np.zeros((n_lines,channels),dtype=np.float64)
                 n = 0;
                 for l in f:
                     l = l.strip()

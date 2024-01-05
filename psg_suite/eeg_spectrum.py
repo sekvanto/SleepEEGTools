@@ -51,7 +51,7 @@ class EEGSpectralData():
         if downsample is None:
             downsample = max(1, int((len(self.frequencystamps) - 1) * desired_fstep / (self.frequencystamps[-1] - self.frequencystamps[0])))
         self.frequencystamps = self.frequencystamps[:len(self.frequencystamps) // downsample * downsample:downsample]
-        self.data = np.zeros((n_electrodes,len(range(window,eegdata.data.shape[0],step)),len(self.frequencystamps)),dtype=np.float)
+        self.data = np.zeros((n_electrodes,len(range(window,eegdata.data.shape[0],step)),len(self.frequencystamps)),dtype=np.float64)
         for el in range(n_electrodes):
             n = 0;
             for d in range(window,eegdata.data.shape[0],step):
@@ -115,8 +115,13 @@ class EEGSpectralData():
             plt.title(title)
             axes = fig.axes[0]
 
+        step = np.argmax(self.frequencystamps>5)
+        if step <= 1:  # Check if the step is less than or equal to 1
+            step = 2   # Set a default step value (you can adjust this as needed)
+
+
         #Calculate Y axis labels
-        yticks = np.arange(0,len(self.frequencystamps), np.argmax(self.frequencystamps>5)-1)
+        yticks = np.arange(0,len(self.frequencystamps), step-1)
         yticklabels = ["{:6.2f}".format(i) for i in self.frequencystamps[yticks]]
 
         #Calculate X axis labels

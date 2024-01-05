@@ -203,7 +203,7 @@ class SleepStageLabel():
         tableax.add_table(table)
         
         fig.canvas.callbacks.connect('pick_event', on_pick)
-        fig.canvas.set_window_title('EEG Spectrogram Analysis')
+        ##fig.canvas.set_window_title('EEG Spectrogram Analysis')
 
         plt.subplots_adjust(left=0.15 if figsize[0] < 10 else 0.075, bottom=0.2, right=0.99, top=0.97)
         redraw_labels()

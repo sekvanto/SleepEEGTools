@@ -12,6 +12,9 @@ from psg_suite.eeg_spectrum import EEGSpectralData
 from psg_suite.sleep_stage_label import SleepStageLabel
 
 def mf():
+    ftype = None  # Initialize ftype to None at the start of the function
+
+    
     if len(sys.argv) > 3:
         print("Usage: {} [[format] filename]".format(sys.argv[0]))
         return
