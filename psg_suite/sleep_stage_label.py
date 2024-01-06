@@ -80,20 +80,46 @@ class SleepStageLabel():
                 print("stage_labels size is " + str(self.stage_labels.size))
             if event is not None:
                 redraw_labels(event)
-        def redraw_labels(event=None):
+
+        def redraw_labels(event=None):       
+            # Update line data for stages
             line1.set_xdata(np.concatenate((self.stage_times, [self.sleep_length])))
             line1.set_ydata(np.concatenate((self.stage_labels, [self.stage_labels[-1]])))
-            data = [0, 0, 0, 0, 0, 0, 0, 0]
-            for x in range(0, len(self.stage_times)):
-                data_offset = int(len(sleep_stage_labels) - (self.stage_labels[x] + 1))
-                thisval = self.stage_times[x]
-                nextval = self.sleep_length if x is len(self.stage_times) - 1 else self.stage_times[x + 1]
-                diffval = nextval - thisval
-                data[data_offset] = data[data_offset] + diffval
-            data[len(data) - 1] = self.sleep_length
-            for x in range(0, len(data)):
-                table.get_celld()[x, 1].get_text().set_text(format_time_period(data[x]))
+            
+            # Clear previous filled areas to avoid overlap
+            for coll in ax1.collections[:]:  # Iterate over a copy of the list
+                coll.remove()
+
+            # Define the colors for each stage
+            stage_colors = {
+                'MASK OFF': 'red',
+                'WAKE': 'red',
+                'NREM1': 'lightblue',
+                'NREM2': 'blue',
+                'NREM3': 'darkblue',
+                'REM': 'green',
+                '???': 'gray'
+            }
+
+            # Create a mask array of zeros with the same length as the stage_times array
+            mask = np.zeros_like(self.stage_times)
+
+            # Loop through each stage and fill the area below the line
+            for stage_idx, stage in enumerate(sleep_stage_labels):
+                # Fill areas where the stage is present
+                mask[:] = np.array(self.stage_labels) == stage_idx
+                if np.any(mask):
+                    ax1.fill_between(
+                        np.concatenate((self.stage_times, [self.sleep_length])),
+                        0,  # Start filling from 0
+                        np.concatenate((mask, [mask[-1]])) * (stage_idx + 1),  # Multiply mask by stage index to shift up
+                        step='post',
+                        color=stage_colors[stage]
+                    )
+
+            # Redraw the canvas after making changes
             fig.canvas.draw()
+
         def on_pick(figure, mouseevent):
             #print(ax_transforms)
             #print(mouseevent)
