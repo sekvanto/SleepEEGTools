@@ -81,7 +81,11 @@ class SleepStageLabel():
             if event is not None:
                 redraw_labels(event)
 
-        def redraw_labels(event=None):       
+        def redraw_labels(event=None):
+            # Debug: Print stage_times and stage_labels
+            print("Debug - stage_times:", self.stage_times)
+            print("Debug - stage_labels:", self.stage_labels)
+            
             # Update line data for stages
             line1.set_xdata(np.concatenate((self.stage_times, [self.sleep_length])))
             line1.set_ydata(np.concatenate((self.stage_labels, [self.stage_labels[-1]])))
@@ -94,9 +98,9 @@ class SleepStageLabel():
             stage_colors = {
                 'MASK OFF': 'red',
                 'WAKE': 'red',
-                'NREM1': 'lightblue',
-                'NREM2': 'blue',
-                'NREM3': 'darkblue',
+                'NREM1': 'lightpink',
+                'NREM2': 'lightblue',
+                'NREM3': 'blue',
                 'REM': 'green',
                 '???': 'gray'
             }
@@ -116,6 +120,28 @@ class SleepStageLabel():
                         step='post',
                         color=stage_colors[stage]
                     )
+
+            # Initialize an array to store the duration of each stage
+            stage_durations = [0] * len(sleep_stage_labels)
+            excluded_stages = {'WAKE', '???', 'MASK OFF'}  # Define stages to exclude from total sleep time
+            
+            # Calculate durations for each stage
+            for i in range(len(self.stage_times) - 1):
+                duration = self.stage_times[i + 1] - self.stage_times[i]
+                stage_durations[int(self.stage_labels[i])] += duration
+
+            # Calculate the total sleep time excluding the durations of WAKE, ???, and MASK OFF
+            total_sleep_time = self.sleep_length - sum(stage_durations[sleep_stage_labels.index(stage)] for stage in excluded_stages if stage in sleep_stage_labels)
+
+            # Update the table with the calculated durations
+            for i, duration in enumerate(stage_durations):
+                formatted_duration = format_time_period(duration)
+                print(f"Debug - Updating table cell with label {sleep_stage_labels[i]} with duration {formatted_duration}")
+                table.get_celld()[(len(sleep_stage_labels) - 1 - i, 1)].get_text().set_text(formatted_duration)
+
+            # Update the total sleep time cell
+            print(f"Debug - Adjusted Total Sleep Time: {format_time_period(total_sleep_time)}")
+            table.get_celld()[(len(stage_durations), 1)].get_text().set_text(format_time_period(total_sleep_time))
 
             # Redraw the canvas after making changes
             fig.canvas.draw()
